@@ -1,0 +1,3 @@
+- completed the installation of ros packages
+- we have the node that publishes velocity and steering degree (x, y)
+- we have a node that subscribes to that one and prints the data
