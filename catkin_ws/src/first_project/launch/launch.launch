@@ -1,0 +1,6 @@
+<launch>
+  <!-- Node for subscribing to "speedsteer" topic -->
+  <node name="odometer" pkg="first_project" type="odometer" output="screen">
+    <!-- Arguments can be passed here if needed, like remaps, params, etc. -->
+  </node>
+</launch>
