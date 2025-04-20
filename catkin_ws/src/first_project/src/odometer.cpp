@@ -1,16 +1,16 @@
-#include "ros/ros.h"
-#include "std_msgs/String.h"
+// FIRST NODE: ODOMETER
+
 #include "ros/ros.h"
 #include "geometry_msgs/PointStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "tf/transform_broadcaster.h"
-#include <math.h>
 #include <tf/transform_datatypes.h>
+#include <math.h>
 
 // Vehicle parameters
-static const double WHEELBASE = 1.3;  // Rear wheels baseline (in meters)
-static const double VEHICLE_LENGTH = 1.765;  // Distance from front to rear wheels (in meters)
-static const double STEERING_FACTOR = 32;  // Steering factor (adjusted per vehicle)
+static const double WHEELBASE = 1.3;        // Rear wheels baseline (in meters)
+static const double VEHICLE_LENGTH = 1.765; // Distance from front to rear wheels (in meters)
+static const double STEERING_FACTOR = 32;   // Steering factor (adjusted per vehicle)
 
 class Odometer
 {
@@ -19,6 +19,7 @@ class Odometer
     ros::Publisher odom_pub_;
     ros::Subscriber sub_;
     tf::TransformBroadcaster tf_broadcaster_;
+
 
     // Vehicle state variables
     double x_, y_, theta_;
@@ -127,7 +128,7 @@ class Odometer
 
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   ros::init(argc, argv, "odometer");
   Odometer odom_node;
