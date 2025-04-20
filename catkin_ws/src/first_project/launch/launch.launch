@@ -11,8 +11,7 @@
   <!-- Node: Odometry from /swiftnav/front/gps_pose -->
   <node name="gps_odometer" pkg="first_project" type="gps_odometer" output="screen" />
 
-  <!-- RViz (todo: needed to do a config file for delivery) -->
-  <!-- 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/your_config_file.rviz" />
-  -->
+  <!-- RViz (todo: set it up better) -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/gps_viz.rviz" />
+ 
 </launch>
