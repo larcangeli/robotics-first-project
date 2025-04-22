@@ -1,15 +1,17 @@
 <launch>
   <!-- Parameters: Reference GPS values for ENU -->
   <!-- Obtained doing: rostopic echo /swiftnav/front/gps_pose -n1 -->
-  <param name="lat_r" value="45.61893223081611" /> 
-  <param name="lon_r" value="9.281178817811535" />
-  <param name="alt_r" value="229.04138210201816" /> 
+  
 
   <!-- Node: Odometry from /speedsteer -->
   <node name="odometer" pkg="first_project" type="odometer" output="screen" />
-
+  
   <!-- Node: Odometry from /swiftnav/front/gps_pose -->
-  <node name="gps_odometer" pkg="first_project" type="gps_odometer" output="screen" />
+  <node name="gps_odometer" pkg="first_project" type="gps_odometer" output="screen" >
+    <param name="lat_r" value="45.61893223081611" /> 
+    <param name="lon_r" value="9.281178817811535" />
+    <param name="alt_r" value="229.04138210201816" /> 
+  </node>
 
   <!-- RViz (todo: set it up better) -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/gps_viz.rviz" />

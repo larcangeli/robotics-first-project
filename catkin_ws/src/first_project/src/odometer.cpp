@@ -66,11 +66,26 @@ class Odometer
       // Calculate the rate of change of the vehicle's position and orientation (kinematic equations)
       double angular_velocity = speed / turning_radius;  // In radians per second
 
-      // Update the pose (x, y, theta) by integrating over time
+      // Update the pose (x, y, theta) by integrating over time using Eueler's method
+      /*
       theta_ += angular_velocity * dt;
       x_ += speed * cos(theta_) * dt;
       y_ += speed * sin(theta_) * dt;
+      */
+      // Update the pose (x, y, theta) by integrating over time using Runge-Kutta method
       
+      theta_ += angular_velocity * dt;
+      x_ += speed * cos(theta_ + angular_velocity*dt/2) * dt;
+      y_ += speed * sin(theta_ + angular_velocity*dt/2) * dt;
+      
+      // Update the pose (x, y, theta) by integrating over time using exact approximation
+      // This is a more accurate method for non-linear motion
+      /*
+      theta_new = theta_ + angular_velocity * dt;
+      x_ += speed/angular_velocity * (sin(theta_new) - sin(theta_));
+      y_ += speed/angular_velocity * (cos(theta_new) - cos(theta_));
+      theta_ = theta_new;
+      */
 
       // Prepare the Odometry message
       nav_msgs::Odometry odom;
@@ -98,7 +113,7 @@ class Odometer
 
       odom_pub_.publish(odom);
 
-      ROS_INFO("HERE!!!!!!");
+      ROS_INFO("ODOM_POSE!!!!!!");
       // PRINT ODOM NAV_MSG
       ROS_INFO("Position: (%.2f, %.2f), Orientation: (%.2f, %.2f, %.2f, %.2f)",
               odom.pose.pose.position.x,
