@@ -1,0 +1,3 @@
+int32 current_sector
+float32 current_sector_time
+float32 current_sector_mean_speed
