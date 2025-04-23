@@ -4,8 +4,13 @@
 #include "nav_msgs/Odometry.h"
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/Quaternion.h"
+#include "geometry_msgs/PointStamped.h"
 #include "tf/transform_datatypes.h"
 #include <math.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/synchronizer.h>
+#include <boost/bind.hpp>
 
 class GpsOdometer
 {
@@ -18,7 +23,7 @@ public:
     last_enu_y_ = 0.0;
     heading_initialized_ = false;
 
-    // Load parameters (reference point)
+    // Load reference point parameters
     ros::NodeHandle private_nh("~");
     private_nh.param("lat_r", lat_ref_, 0.0);
     private_nh.param("lon_r", lon_ref_, 0.0);
@@ -32,36 +37,46 @@ public:
     referenceECEF(lat_ref_, lon_ref_, alt_ref_, x_ref_, y_ref_, z_ref_);
 
     // ROS setup
-    sub_ = nh_.subscribe("/swiftnav/front/gps_pose", 10, &GpsOdometer::gpsCallback, this);
+    gps_sub_.subscribe(nh_, "/swiftnav/front/gps_pose", 10);
+    speedsteer_sub_.subscribe(nh_, "/speedsteer", 10);
+
+    sync_ = std::make_shared<message_filters::Synchronizer<MySyncPolicy>>(MySyncPolicy(10), gps_sub_, speedsteer_sub_);
+    sync_->registerCallback(boost::bind(&GpsOdometer::syncedCallback, this, _1, _2));
+
     pub_ = nh_.advertise<nav_msgs::Odometry>("/gps_odom", 10);
   }
 
-  void gpsCallback(const sensor_msgs::NavSatFix::ConstPtr& msg)
+  void syncedCallback(const sensor_msgs::NavSatFix::ConstPtr &gps_msg,
+                      const geometry_msgs::PointStamped::ConstPtr &steer_msg)
   {
-    if (msg->status.status < 0) {
+    if (gps_msg->status.status < 0)
+    {
       ROS_WARN("GPS signal not valid");
       return;
     }
 
     double x, y, z;
-    gpsToECEF(msg->latitude, msg->longitude, msg->altitude, x, y, z);
+    gpsToECEF(gps_msg->latitude, gps_msg->longitude, gps_msg->altitude, x, y, z);
 
     double enu_x, enu_y, enu_z;
     ecefToENU(x, y, z, enu_x, enu_y, enu_z);
 
-    ros::Time current_time = msg->header.stamp;
+    ros::Time current_time = gps_msg->header.stamp;
 
+    // rotate ENU axes
     double north = enu_y;
-    double east  = enu_x;
+    double east = enu_x;
     enu_x = north;
     enu_y = east;
 
     // Estimate heading
     double yaw = 0.0;
-    if (heading_initialized_) {
+    if (heading_initialized_)
+    {
       double dx = enu_x - last_enu_x_;
       double dy = enu_y - last_enu_y_;
-      if (dx != 0.0 || dy != 0.0) {
+      if (dx != 0.0 || dy != 0.0)
+      {
         yaw = atan2(dy, dx);
       }
     }
@@ -69,7 +84,7 @@ public:
     last_enu_y_ = enu_y;
     heading_initialized_ = true;
 
-    // Fill Odometry message
+    // Prepare Odometry message
     nav_msgs::Odometry odom;
     odom.header.stamp = current_time;
     odom.header.frame_id = "odom";
@@ -95,31 +110,41 @@ public:
     tf_msg.transform.rotation = quat;
     tf_broadcaster_.sendTransform(tf_msg);
 
-    ROS_INFO("Published GPS odometry: (%.2f, %.2f), yaw: %.2f rad", enu_x, enu_y, yaw);
+    // Log the computed odometry for debugging
+    ROS_INFO("[GPS_ODOM] Time: %.2f | Pos: (%.2f, %.2f) | yaw: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f)",
+             current_time.toSec(),
+             enu_x, enu_y,
+             yaw,
+             quat.x, quat.y, quat.z, quat.w);
   }
 
 private:
   ros::NodeHandle nh_;
-  ros::Subscriber sub_;
   ros::Publisher pub_;
   tf::TransformBroadcaster tf_broadcaster_;
+
+  message_filters::Subscriber<sensor_msgs::NavSatFix> gps_sub_;
+  message_filters::Subscriber<geometry_msgs::PointStamped> speedsteer_sub_;
+  // std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::NavSatFix, geometry_msgs::PointStamped>> sync_;
+
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::NavSatFix, geometry_msgs::PointStamped> MySyncPolicy;
+  std::shared_ptr<message_filters::Synchronizer<MySyncPolicy>> sync_;
 
   // Reference point (ECEF)
   double lat_ref_, lon_ref_, alt_ref_;
   double lat_ref_rad_, lon_ref_rad_;
   double x_ref_, y_ref_, z_ref_;
 
-  // For heading
+  // Heading tracking
   bool heading_initialized_;
   double last_enu_x_, last_enu_y_;
   bool got_reference_;
 
-  void gpsToECEF(double lat, double lon, double alt, double& x, double& y, double& z)
+  void gpsToECEF(double lat, double lon, double alt, double &x, double &y, double &z)
   {
-    // Constant from WGS-84 ellipsoid parameters
-    double a = 6378137.0;        // semi-major axis (equator radius in meters)
-    double b = 6356752.0;        // semi-minor axis (pole radius)
-    double e2 = 1 - (b*b)/(a*a); // eccentricity squared    
+    double a = 6378137.0;
+    double b = 6356752.0;
+    double e2 = 1 - (b * b) / (a * a);
 
     double lat_rad = lat * M_PI / 180.0;
     double lon_rad = lon * M_PI / 180.0;
@@ -128,28 +153,27 @@ private:
 
     x = (N + alt) * cos(lat_rad) * cos(lon_rad);
     y = (N + alt) * cos(lat_rad) * sin(lon_rad);
-    z = ((b*b)/(a*a) * N + alt) * sin(lat_rad);
+    z = ((b * b) / (a * a) * N + alt) * sin(lat_rad);
   }
 
-  void referenceECEF(double lat, double lon, double alt, double& x, double& y, double& z)
+  void referenceECEF(double lat, double lon, double alt, double &x, double &y, double &z)
   {
     gpsToECEF(lat, lon, alt, x, y, z);
   }
 
-  void ecefToENU(double x, double y, double z, double& enu_x, double& enu_y, double& enu_z)
+  void ecefToENU(double x, double y, double z, double &enu_x, double &enu_y, double &enu_z)
   {
     double dx = x - x_ref_;
     double dy = y - y_ref_;
     double dz = z - z_ref_;
 
-    enu_x = -sin(lon_ref_rad_)*dx + cos(lon_ref_rad_)*dy;
-    enu_y = -sin(lat_ref_rad_)*cos(lon_ref_rad_)*dx - sin(lat_ref_rad_)*sin(lon_ref_rad_)*dy + cos(lat_ref_rad_)*dz;
-    enu_z = cos(lat_ref_rad_)*cos(lon_ref_rad_)*dx + cos(lat_ref_rad_)*sin(lon_ref_rad_)*dy + sin(lat_ref_rad_)*dz;
-      
+    enu_x = -sin(lon_ref_rad_) * dx + cos(lon_ref_rad_) * dy;
+    enu_y = -sin(lat_ref_rad_) * cos(lon_ref_rad_) * dx - sin(lat_ref_rad_) * sin(lon_ref_rad_) * dy + cos(lat_ref_rad_) * dz;
+    enu_z = cos(lat_ref_rad_) * cos(lon_ref_rad_) * dx + cos(lat_ref_rad_) * sin(lon_ref_rad_) * dy + sin(lat_ref_rad_) * dz;
   }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   ros::init(argc, argv, "gps_odometer");
   GpsOdometer node;

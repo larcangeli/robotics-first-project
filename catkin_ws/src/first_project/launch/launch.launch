@@ -1,19 +1,19 @@
 <launch>
-  <!-- Parameters: Reference GPS values for ENU -->
-  <!-- Obtained doing: rostopic echo /swiftnav/front/gps_pose -n1 -->
-  
-
   <!-- Node: Odometry from /speedsteer -->
   <node name="odometer" pkg="first_project" type="odometer" output="screen" />
   
   <!-- Node: Odometry from /swiftnav/front/gps_pose -->
   <node name="gps_odometer" pkg="first_project" type="gps_odometer" output="screen" >
-    <param name="lat_r" value="45.61893223081611" /> 
-    <param name="lon_r" value="9.281178817811535" />
-    <param name="alt_r" value="229.04138210201816" /> 
+    <!-- Parameters: Reference GPS values for ENU -->
+    <!-- Obtained doing: rostopic echo /swiftnav/front/gps_pose -n1 -->
+    <param name="lat_r" value="45.618932261267474" /> 
+    <param name="lon_r" value="9.281178809669486" />
+    <param name="alt_r" value="229.04575101944224" /> 
   </node>
 
   <!-- RViz (todo: set it up better) -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/gps_viz.rviz" />
- 
+  
+  <!-- Play rosbag (comment this node before delivering project. Not necessary to start bag from launch file!)-->
+  <node pkg="rosbag" type="play" name="play_bag" args="--clock /home/robotics/data/project.bag" output="screen" />
 </launch>

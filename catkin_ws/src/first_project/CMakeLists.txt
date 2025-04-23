@@ -20,12 +20,12 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  message_filters
 )
-
 
 ## Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs tf message_runtime
+  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs tf message_filters message_runtime
 )
 
 ## Build talker and listener
