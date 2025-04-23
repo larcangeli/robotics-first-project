@@ -4,6 +4,7 @@
 #include "geometry_msgs/PointStamped.h"
 #include "nav_msgs/Odometry.h"
 #include "tf/transform_broadcaster.h"
+#include "std_msgs/Float64.h"
 #include <tf/transform_datatypes.h>
 #include <math.h>
 
@@ -11,6 +12,7 @@
 static const double WHEELBASE = 1.3;        // Rear wheels baseline (in meters)
 static const double VEHICLE_LENGTH = 1.765; // Distance from front to rear wheels (in meters)
 static const double STEERING_FACTOR = 32;   // Steering factor (adjusted per vehicle)
+static const double STEER_BIAS = 0.0;       // Set to 0 initially, update if needed
 
 class Odometer
 {
@@ -18,11 +20,16 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub_;
   ros::Subscriber sub_;
+  ros::Subscriber yaw_sub_;
   tf::TransformBroadcaster tf_broadcaster_;
 
   // Vehicle state variables
   double x_, y_, theta_;
   ros::Time last_time_;
+
+  // GPS yaw comparison
+  double gps_yaw_;
+  bool got_yaw_;
 
 public:
   Odometer()
@@ -32,28 +39,33 @@ public:
     y_ = 0.0;
     theta_ = 0.0;
     last_time_ = ros::Time::now();
+    gps_yaw_ = 0.0;
+    got_yaw_ = false;
 
     // Publisher for odometry
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/odom", 10);
 
     // Subscriber to vehicle status on "/speedsteer"
     sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
+    yaw_sub_ = nh_.subscribe("/gps_heading", 10, &Odometer::yawCallback, this);
+  }
+
+  void yawCallback(const std_msgs::Float64::ConstPtr &msg)
+  {
+    gps_yaw_ = msg->data;
+    got_yaw_ = true;
   }
 
   void speedsteerCallback(const geometry_msgs::PointStamped::ConstPtr &msg)
   {
     ros::Time current_time = msg->header.stamp;
     double dt = (current_time - last_time_).toSec();
-    // if (dt <= 0.0) {
-    //   // In case of timing issues, skip integration
-    //   dt = 0.01;
-    // }
     last_time_ = current_time;
 
     // Extract vehicle status:
     // x: steering angle in deg, y: speed in km/h
     double steer_deg = msg->point.x / STEERING_FACTOR;
-    steer_deg -= STEER_BIAS;  // donde STEER_BIAS = 1.5 o lo que necesites
+    steer_deg -= STEER_BIAS; // Apply bias if known
 
     double steer_rad = steer_deg * M_PI / 180.0; // Convert to radians
     double speed_kmh = msg->point.y;
@@ -127,17 +139,23 @@ public:
 
     tf_broadcaster_.sendTransform(odom_trans);
 
-    // Log the computed odometry for debugging
-    // ROS_INFO("[GPS_ODOM] Time: %.2f | Pos: (%.2f, %.2f) | yaw: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f)",
+    double theta_deg = theta_ * 180.0 / M_PI;
+    if (got_yaw_)
+    {
+      double yaw_deg = gps_yaw_ * 180.0 / M_PI;
+      double yaw_diff = theta_deg - yaw_deg;
+      ROS_INFO("[THETA vs YAW] theta: %.2f deg | yaw: %.2f deg | difference: %.2f deg", theta_deg, yaw_deg, yaw_diff);
+    }
+
     ROS_INFO("[ODOM] Time: %.2f | Pos: (%.2f, %.2f) | theta: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f) | v: %.2f m/s | steer: %.2f deg",
-      current_time.toSec(),
-      x_, y_,
-      theta_,
-      odom.pose.pose.orientation.x,
-      odom.pose.pose.orientation.y,
-      odom.pose.pose.orientation.z,
-      odom.pose.pose.orientation.w,
-      speed, steer_deg);
+             current_time.toSec(),
+             x_, y_,
+             theta_,
+             odom.pose.pose.orientation.x,
+             odom.pose.pose.orientation.y,
+             odom.pose.pose.orientation.z,
+             odom.pose.pose.orientation.w,
+             speed, steer_deg);
   }
 };
 

@@ -20,7 +20,6 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
-  message_filters
 )
 
 ## Declare a catkin package

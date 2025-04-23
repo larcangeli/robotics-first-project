@@ -5,6 +5,7 @@
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/PointStamped.h"
+#include "std_msgs/Float64.h"
 #include "tf/transform_datatypes.h"
 #include <math.h>
 #include <message_filters/subscriber.h>
@@ -44,6 +45,7 @@ public:
     sync_->registerCallback(boost::bind(&GpsOdometer::syncedCallback, this, _1, _2));
 
     pub_ = nh_.advertise<nav_msgs::Odometry>("/gps_odom", 10);
+    yaw_pub_ = nh_.advertise<std_msgs::Float64>("/gps_heading", 10);
   }
 
   void syncedCallback(const sensor_msgs::NavSatFix::ConstPtr &gps_msg,
@@ -99,6 +101,11 @@ public:
 
     pub_.publish(odom);
 
+    // Publish yaw angle
+    std_msgs::Float64 yaw_msg;
+    yaw_msg.data = yaw;
+    yaw_pub_.publish(yaw_msg);
+
     // Broadcast TF
     geometry_msgs::TransformStamped tf_msg;
     tf_msg.header.stamp = current_time;
@@ -121,12 +128,11 @@ public:
 private:
   ros::NodeHandle nh_;
   ros::Publisher pub_;
+  ros::Publisher yaw_pub_;
   tf::TransformBroadcaster tf_broadcaster_;
 
   message_filters::Subscriber<sensor_msgs::NavSatFix> gps_sub_;
   message_filters::Subscriber<geometry_msgs::PointStamped> speedsteer_sub_;
-  // std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::NavSatFix, geometry_msgs::PointStamped>> sync_;
-
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::NavSatFix, geometry_msgs::PointStamped> MySyncPolicy;
   std::shared_ptr<message_filters::Synchronizer<MySyncPolicy>> sync_;
 
