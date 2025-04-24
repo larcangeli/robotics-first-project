@@ -1,3 +1,6 @@
 catkin_ws/build
 catkin_ws/devel
+
 frames.gv
+
+.vscode/

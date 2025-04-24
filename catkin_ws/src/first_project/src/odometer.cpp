@@ -20,7 +20,7 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub_;
   ros::Subscriber sub_;
-  ros::Subscriber yaw_sub_;
+  ros::Subscriber debug_sub_;
   tf::TransformBroadcaster tf_broadcaster_;
 
   // Vehicle state variables
@@ -47,7 +47,7 @@ public:
 
     // Subscriber to vehicle status on "/speedsteer"
     sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
-    yaw_sub_ = nh_.subscribe("/gps_heading", 10, &Odometer::yawCallback, this);
+    debug_sub_ = nh_.subscribe("/debug_topic", 10, &Odometer::yawCallback, this);
   }
 
   void yawCallback(const std_msgs::Float64::ConstPtr &msg)
@@ -144,7 +144,7 @@ public:
     {
       double yaw_deg = gps_yaw_ * 180.0 / M_PI;
       double yaw_diff = theta_deg - yaw_deg;
-      ROS_INFO("[THETA vs YAW] theta: %.2f deg | yaw: %.2f deg | difference: %.2f deg", theta_deg, yaw_deg, yaw_diff);
+      ROS_INFO("[DEBUG: THETA vs YAW] theta: %.2f deg | yaw: %.2f deg | difference: %.2f deg", theta_deg, yaw_deg, yaw_diff);
     }
 
     ROS_INFO("[ODOM] Time: %.2f | Pos: (%.2f, %.2f) | theta: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f) | v: %.2f m/s | steer: %.2f deg",

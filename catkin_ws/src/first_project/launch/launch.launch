@@ -11,6 +11,9 @@
     <param name="alt_r" value="229.04575101944224" /> 
   </node>
 
+  <!-- Node: Sector times -->
+  <node name="sector_times" pkg="first_project" type="sector_times" output="screen" />
+
   <!-- RViz (todo: set it up better) -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/gps_viz.rviz" />
   
