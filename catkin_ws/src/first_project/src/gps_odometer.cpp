@@ -5,6 +5,7 @@
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/Quaternion.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/String.h"
 #include <math.h>
 
 class GpsOdometer
@@ -21,6 +22,8 @@ private:
 
   bool heading_initialized_;
   double last_enu_x_, last_enu_y_;
+  double yaw_filtered_ = 0.0;
+  const double alpha_ = 0.1; // smoothing factor: adjust when visualizing in map
 
 public:
   GpsOdometer()
@@ -38,7 +41,7 @@ public:
 
     gps_sub_ = nh_.subscribe("/swiftnav/front/gps_pose", 10, &GpsOdometer::gpsCallback, this);
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/gps_odom", 10);
-    debug_pub_ = nh_.advertise<std_msgs::Float64>("/debug_topic", 10);
+    debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
   }
 
   void gpsCallback(const sensor_msgs::NavSatFix::ConstPtr &msg)
@@ -62,14 +65,16 @@ public:
     enu_x = north;
     enu_y = east;
 
-    double yaw = 0.0;
+    double yaw = yaw_filtered_; // Default to previous filtered yaw
     if (heading_initialized_)
     {
       double dx = enu_x - last_enu_x_;
       double dy = enu_y - last_enu_y_;
       if (dx != 0.0 || dy != 0.0)
       {
-        yaw = atan2(dy, dx);
+        double new_yaw = atan2(dy, dx);
+        yaw_filtered_ = alpha_ * new_yaw + (1.0 - alpha_) * yaw_filtered_;
+        yaw = yaw_filtered_;
       }
     }
     last_enu_x_ = enu_x;
@@ -90,9 +95,9 @@ public:
 
     odom_pub_.publish(odom);
 
-    std_msgs::Float64 yaw_msg;
-    yaw_msg.data = yaw;
-    debug_pub_.publish(yaw_msg);
+    std_msgs::String debug;
+    debug.data = "GPS_YAW: " + std::to_string(yaw);
+    debug_pub_.publish(debug);
 
     geometry_msgs::TransformStamped tf_msg;
     tf_msg.header.stamp = current_time;
@@ -103,7 +108,7 @@ public:
     tf_msg.transform.translation.y = enu_y;
     tf_msg.transform.translation.z = 0.0;
     tf_msg.transform.rotation = quat;
-  
+
     tf_broadcaster_.sendTransform(tf_msg);
 
     ROS_INFO("[GPS_ODOM] Time: %.2f | Pos: (%.2f, %.2f) | yaw: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f)",

@@ -5,6 +5,7 @@
 #include "nav_msgs/Odometry.h"
 #include "tf/transform_broadcaster.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/String.h"
 #include <tf/transform_datatypes.h>
 #include <math.h>
 
@@ -20,7 +21,7 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub_;
   ros::Subscriber sub_;
-  ros::Subscriber debug_sub_;
+  ros::Publisher debug_pub_;
   tf::TransformBroadcaster tf_broadcaster_;
 
   // Vehicle state variables
@@ -47,7 +48,7 @@ public:
 
     // Subscriber to vehicle status on "/speedsteer"
     sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
-    debug_sub_ = nh_.subscribe("/debug_topic", 10, &Odometer::yawCallback, this);
+    debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
   }
 
   void yawCallback(const std_msgs::Float64::ConstPtr &msg)
@@ -140,12 +141,10 @@ public:
     tf_broadcaster_.sendTransform(odom_trans);
 
     double theta_deg = theta_ * 180.0 / M_PI;
-    if (got_yaw_)
-    {
-      double yaw_deg = gps_yaw_ * 180.0 / M_PI;
-      double yaw_diff = theta_deg - yaw_deg;
-      ROS_INFO("[DEBUG: THETA vs YAW] theta: %.2f deg | yaw: %.2f deg | difference: %.2f deg", theta_deg, yaw_deg, yaw_diff);
-    }
+
+    std_msgs::String debug;
+    debug.data = "VEHICULE_YAW: " + std::to_string(theta_);
+    debug_pub_.publish(debug);
 
     ROS_INFO("[ODOM] Time: %.2f | Pos: (%.2f, %.2f) | theta: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f) | v: %.2f m/s | steer: %.2f deg",
              current_time.toSec(),
