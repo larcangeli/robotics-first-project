@@ -13,7 +13,6 @@
 static const double WHEELBASE = 1.3;        // Rear wheels baseline (in meters)
 static const double VEHICLE_LENGTH = 1.765; // Distance from front to rear wheels (in meters)
 static const double STEERING_FACTOR = 32;   // Steering factor (adjusted per vehicle)
-static const double STEER_BIAS = 0.0;       // Set to 0 initially, update if needed
 
 class Odometer
 {
@@ -21,8 +20,13 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub_;
   ros::Subscriber sub_;
+  ros::Subscriber gps_yaw_sub_;
   ros::Publisher debug_pub_;
   tf::TransformBroadcaster tf_broadcaster_;
+  
+  // Steering bias for correction
+  double steer_bias_ = 0.0; 
+  static constexpr double K = 0.1;  // learning rate
 
   // Vehicle state variables
   double x_, y_, theta_;
@@ -31,6 +35,7 @@ private:
   // GPS yaw comparison
   double gps_yaw_;
   bool got_yaw_;
+  double yaw_diff;
 
 public:
   Odometer()
@@ -49,6 +54,11 @@ public:
     // Subscriber to vehicle status on "/speedsteer"
     sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
     debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
+    // Subscriber to GPS yaw
+    gps_yaw_sub_ = nh_.subscribe("/gps_yaw", 10, &Odometer::yawCallback, this);
+    
+
+
   }
 
   void yawCallback(const std_msgs::Float64::ConstPtr &msg)
@@ -66,7 +76,23 @@ public:
     // Extract vehicle status:
     // x: steering angle in deg, y: speed in km/h
     double steer_deg = msg->point.x / STEERING_FACTOR;
-    steer_deg -= STEER_BIAS; // Apply bias if known
+
+    steer_deg -= steer_bias_;
+
+    if (got_yaw_)
+    {
+      yaw_diff = theta_ - gps_yaw_;
+
+      //wrap to [-pi, pi]
+      while (yaw_diff > M_PI)   yaw_diff -= 2*M_PI;
+      while (yaw_diff < -M_PI)  yaw_diff += 2*M_PI;
+
+      steer_bias_ += K * yaw_diff;    
+      
+      ROS_INFO("[BIAS] STEER BIAS!!!!!!!!!!!!!!!!!!!!!!: %.4f deg", steer_bias_);
+
+    }
+
 
     double steer_rad = steer_deg * M_PI / 180.0; // Convert to radians
     double speed_kmh = msg->point.y;
