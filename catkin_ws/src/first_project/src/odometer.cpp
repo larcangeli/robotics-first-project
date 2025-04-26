@@ -37,6 +37,14 @@ private:
   bool got_yaw_;
   double yaw_diff;
 
+  double normalizeAngle(double angle)
+  {
+    while (angle > M_PI) angle -= 2 * M_PI;
+    while (angle < -M_PI) angle += 2 * M_PI;
+    return angle;
+  }
+  
+
 public:
   Odometer()
   {
@@ -82,17 +90,9 @@ public:
     if (got_yaw_)
     {
       yaw_diff = theta_ - gps_yaw_;
-
-      //wrap to [-pi, pi]
-      while (yaw_diff > M_PI)   yaw_diff -= 2*M_PI;
-      while (yaw_diff < -M_PI)  yaw_diff += 2*M_PI;
-
       steer_bias_ += K * yaw_diff;    
-      
       ROS_INFO("[BIAS] STEER BIAS!!!!!!!!!!!!!!!!!!!!!!: %.4f deg", steer_bias_);
-
     }
-
 
     double steer_rad = steer_deg * M_PI / 180.0; // Convert to radians
     double speed_kmh = msg->point.y;
@@ -115,6 +115,8 @@ public:
     // Update the pose (x, y, theta) by integrating over time using Runge-Kutta method
 
     theta_ += angular_velocity * dt;
+    theta_ = normalizeAngle(theta_);
+
     x_ += speed * cos(theta_ + angular_velocity * dt / 2) * dt;
     y_ += speed * sin(theta_ + angular_velocity * dt / 2) * dt;
 

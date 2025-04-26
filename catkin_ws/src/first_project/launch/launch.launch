@@ -16,6 +16,9 @@
 
   <!-- RViz (todo: set it up better) -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find first_project)/rviz/gps_viz.rviz" />
+
+  <!-- FoxGlove visualization -->
+  <node name="foxglove_bridge" pkg="foxglove_bridge" type="foxglove_bridge"  output="screen" /> 
   
   <!-- Play rosbag (comment this node before delivering project. Not necessary to start bag from launch file!)-->
   <node pkg="rosbag" type="play" name="play_bag" args="--clock /home/robotics/data/project.bag" output="screen" />
