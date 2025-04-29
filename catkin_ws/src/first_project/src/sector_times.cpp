@@ -101,7 +101,7 @@ class SectorTimeNode
             ROS_INFO("SECOND GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, second_gate.a, second_gate.b, second_gate.c));
             ROS_INFO("THIRD GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, third_gate.a, third_gate.b, third_gate.c));
             ROS_INFO("FIRST GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, first_gate.a, first_gate.b, first_gate.c));
-            */
+            
 
             if(msg.current_sector == 1) {
                 ROS_INFO("TO SECOND GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, second_gate.a, second_gate.b, second_gate.c));
@@ -114,11 +114,13 @@ class SectorTimeNode
             if(msg.current_sector == 3) {
                 ROS_INFO("TO FIRST GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, first_gate.a, first_gate.b, first_gate.c));
             }
+            */
 
             // I pass through it when the ax + by + c becomes positive and I was in sector 1
             if(msg.current_sector == 1 && gateCoefficient(gps_msg->latitude, gps_msg->longitude, second_gate.a, second_gate.b, second_gate.c) <= 0) {
                 ROS_INFO("STARTED SECTOR 2");
-                ROS_INFO("SECOND GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, second_gate.a, second_gate.b, second_gate.c));
+                ROS_INFO("mean speed: %f, sector_time: %f", msg.current_sector_mean_speed, msg.current_sector_time);
+                //ROS_INFO("SECOND GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, second_gate.a, second_gate.b, second_gate.c));
                 //ROS_INFO("SECOND GATE a:%f, b:%f, c:%f", second_gate.a, second_gate.b, second_gate.c);
                 msg.current_sector = 2;
                 msg.current_sector_mean_speed = 0;
@@ -128,7 +130,8 @@ class SectorTimeNode
             // I pass through it when the ax + by + c becomes negative and I was in sector 2
             if(msg.current_sector == 2 && gateCoefficient(gps_msg->latitude, gps_msg->longitude, third_gate.a, third_gate.b, third_gate.c) >= 0) {
                 ROS_INFO("STARTED SECTOR 3");
-                ROS_INFO("THIRD GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, third_gate.a, third_gate.b, third_gate.c));
+                ROS_INFO("mean speed: %f, sector_time: %f", msg.current_sector_mean_speed, msg.current_sector_time);
+                //ROS_INFO("THIRD GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, third_gate.a, third_gate.b, third_gate.c));
                 //ROS_INFO("THIRD GATE a:%f, b:%f, c:%f", third_gate.a, third_gate.b, third_gate.c);
                 msg.current_sector = 3;
                 msg.current_sector_mean_speed = 0;
@@ -138,7 +141,8 @@ class SectorTimeNode
             // I pass through it when the ax + by + c becomes positive and I was in secotor 3
             if(msg.current_sector == 3 && gateCoefficient(gps_msg->latitude, gps_msg->longitude, first_gate.a, first_gate.b, first_gate.c) <= 0) {
                 ROS_INFO("BACK TO SECTOR 1");
-                ROS_INFO("FIRST GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, first_gate.a, first_gate.b, first_gate.c));
+                ROS_INFO("mean speed: %f, sector_time: %f", msg.current_sector_mean_speed, msg.current_sector_time);
+                //ROS_INFO("FIRST GATE: %f", gateCoefficient(gps_msg->latitude, gps_msg->longitude, first_gate.a, first_gate.b, first_gate.c));
                 //ROS_INFO("FIRST GATE a:%f, b:%f, c:%f", first_gate.a, first_gate.b, third_gate.c);
                 msg.current_sector = 1;
                 msg.current_sector_mean_speed = 0;
