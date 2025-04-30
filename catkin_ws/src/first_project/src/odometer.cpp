@@ -106,7 +106,6 @@ public:
       yaw_diff = theta_ - gps_yaw_;
       steer_bias_ += K * yaw_diff;    
       steer_bias_ = normalizeAngle(steer_bias_);
-      ROS_INFO("[BIAS] STEER BIAS!!!!!!!!!!!!!!!!!!!!!!: %.4f deg", steer_bias_);
     }
 
     double steer_rad = steer_deg * M_PI / 180.0; // Convert to radians
@@ -188,16 +187,6 @@ public:
     std_msgs::String debug;
     debug.data = "VEHICULE_YAW: " + std::to_string(theta_);
     // debug_pub_.publish(debug);
-
-    ROS_INFO("[ODOM] Time: %.2f | Pos: (%.2f, %.2f) | theta: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f) | v: %.2f m/s | steer: %.2f deg",
-             current_time.toSec(),
-             x_, y_,
-             theta_,
-             odom.pose.pose.orientation.x,
-             odom.pose.pose.orientation.y,
-             odom.pose.pose.orientation.z,
-             odom.pose.pose.orientation.w,
-             speed, steer_deg);
   }
 };
 

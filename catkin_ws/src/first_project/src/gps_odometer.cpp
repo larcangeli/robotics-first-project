@@ -112,12 +112,6 @@ public:
     tf_msg.transform.rotation = quat;
 
     tf_broadcaster_.sendTransform(tf_msg);
-
-    ROS_INFO("[GPS_ODOM] Time: %.2f | Pos: (%.2f, %.2f) | yaw: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f)",
-             current_time.toSec(),
-             enu_x, enu_y,
-             yaw,
-             quat.x, quat.y, quat.z, quat.w);
   }
 
   void gpsToECEF(double lat, double lon, double alt, double &x, double &y, double &z)
