@@ -6,9 +6,14 @@
 #include "tf/transform_broadcaster.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/String.h"
+#include "first_project/Float64Stamped.h"
 #include <tf/transform_datatypes.h>
 #include <math.h>
-
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include "sensor_msgs/NavSatFix.h"
+#include "geometry_msgs/Quaternion.h"
 // Vehicle parameters
 static const double WHEELBASE = 1.3;        // Rear wheels baseline (in meters)
 static const double VEHICLE_LENGTH = 1.765; // Distance from front to rear wheels (in meters)
@@ -19,14 +24,14 @@ class Odometer
 private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub_;
-  ros::Subscriber sub_;
-  ros::Subscriber gps_yaw_sub_;
-  ros::Publisher debug_pub_;
+  // ros::Subscriber sub_;
+  // ros::Subscriber gps_yaw_sub_;
+  // ros::Publisher debug_pub_;
   tf::TransformBroadcaster tf_broadcaster_;
   
   // Steering bias for correction
   double steer_bias_ = 0.0; 
-  static constexpr double K = 0.1;  // learning rate
+  static constexpr double K = 0.3;  // learning rate
 
   // Vehicle state variables
   double x_, y_, theta_;
@@ -36,6 +41,14 @@ private:
   double gps_yaw_;
   bool got_yaw_;
   double yaw_diff;
+
+  // Synchronization
+  message_filters::Subscriber<first_project::Float64Stamped> gps_yaw_sub_;
+  message_filters::Subscriber<geometry_msgs::PointStamped> sub_;
+  
+  typedef message_filters::sync_policies::ApproximateTime<first_project::Float64Stamped, geometry_msgs::PointStamped> MySyncPolicy;
+  typedef message_filters::Synchronizer<MySyncPolicy> Sync;
+  boost::shared_ptr<Sync> sync_;
 
   double normalizeAngle(double angle)
   {
@@ -60,23 +73,24 @@ public:
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/odom", 10);
 
     // Subscriber to vehicle status on "/speedsteer"
-    sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
-    debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
+    // sub_ = nh_.subscribe("/speedsteer", 10, &Odometer::speedsteerCallback, this);
+    // debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
     // Subscriber to GPS yaw
-    gps_yaw_sub_ = nh_.subscribe("/gps_yaw", 10, &Odometer::yawCallback, this);
+    // gps_yaw_sub_ = nh_.subscribe("/gps_yaw", 10, &Odometer::yawCallback, this);
+
+    gps_yaw_sub_.subscribe(nh_, "/gps_yaw", 10);
+    sub_.subscribe(nh_, "/speedsteer", 10);
     
-
+    sync_.reset(new Sync(MySyncPolicy(10), gps_yaw_sub_, sub_));
+    sync_->registerCallback(boost::bind(&Odometer::speedsteerCallback, this, _1, _2));
 
   }
 
-  void yawCallback(const std_msgs::Float64::ConstPtr &msg)
+  void speedsteerCallback(const first_project::Float64Stamped::ConstPtr &msg2, const geometry_msgs::PointStamped::ConstPtr &msg)
   {
-    gps_yaw_ = msg->data;
+    gps_yaw_ = msg2->data;
     got_yaw_ = true;
-  }
 
-  void speedsteerCallback(const geometry_msgs::PointStamped::ConstPtr &msg)
-  {
     ros::Time current_time = msg->header.stamp;
     double dt = (current_time - last_time_).toSec();
     last_time_ = current_time;
@@ -91,6 +105,7 @@ public:
     {
       yaw_diff = theta_ - gps_yaw_;
       steer_bias_ += K * yaw_diff;    
+      steer_bias_ = normalizeAngle(steer_bias_);
       ROS_INFO("[BIAS] STEER BIAS!!!!!!!!!!!!!!!!!!!!!!: %.4f deg", steer_bias_);
     }
 
@@ -172,7 +187,7 @@ public:
 
     std_msgs::String debug;
     debug.data = "VEHICULE_YAW: " + std::to_string(theta_);
-    debug_pub_.publish(debug);
+    // debug_pub_.publish(debug);
 
     ROS_INFO("[ODOM] Time: %.2f | Pos: (%.2f, %.2f) | theta: %.2f rad | q: (%.2f, %.2f, %.2f, %.2f) | v: %.2f m/s | steer: %.2f deg",
              current_time.toSec(),

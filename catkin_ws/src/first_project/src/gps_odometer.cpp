@@ -5,6 +5,7 @@
 #include "tf/transform_broadcaster.h"
 #include "geometry_msgs/Quaternion.h"
 #include "std_msgs/Float64.h"
+#include "first_project/Float64Stamped.h"
 #include "std_msgs/String.h"
 #include <math.h>
 
@@ -14,7 +15,6 @@ private:
   ros::NodeHandle nh_;
   ros::Subscriber gps_sub_;
   ros::Publisher odom_pub_;
-  ros::Publisher debug_pub_;
   ros::Publisher yaw_pub_;
   tf::TransformBroadcaster tf_broadcaster_;
 
@@ -42,8 +42,7 @@ public:
 
     gps_sub_ = nh_.subscribe("/swiftnav/front/gps_pose", 10, &GpsOdometer::gpsCallback, this);
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/gps_odom", 10);
-    yaw_pub_ = nh_.advertise<std_msgs::Float64>("/gps_yaw", 10);
-    debug_pub_ = nh_.advertise<std_msgs::String>("/debug_topic", 10);
+    yaw_pub_ = nh_.advertise<first_project::Float64Stamped>("/gps_yaw", 10);
   }
 
   void gpsCallback(const sensor_msgs::NavSatFix::ConstPtr &msg)
@@ -97,12 +96,9 @@ public:
 
     odom_pub_.publish(odom);
 
-    std_msgs::String debug;
-    debug.data = "GPS_YAW: " + std::to_string(yaw);
-    debug_pub_.publish(debug);
-
-    std_msgs::Float64 yaw_msg;
-    yaw_msg.data = yaw;
+    first_project::Float64Stamped yaw_msg;
+    yaw_msg.header.stamp = current_time; // Use the current time from the GPS message
+    yaw_msg.data = yaw; // Set the yaw value
     yaw_pub_.publish(yaw_msg);
 
     geometry_msgs::TransformStamped tf_msg;

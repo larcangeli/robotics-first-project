@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   sector_times.msg
+  Float64Stamped.msg
 )
 
 generate_messages(

@@ -6,6 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - "/Odometry: odom1"
+        - "/Odometry: gps_odom1"
         - "/Odometry: gps_odom1/Shape1"
       Splitter Ratio: 0.5147058963775635
     Tree Height: 555
@@ -97,7 +99,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
+      Keep: 1
       Name: "Odometry: odom"
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
@@ -132,7 +134,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
+      Keep: 1
       Name: "Odometry: gps_odom"
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
@@ -193,9 +195,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3353983163833618
+      Pitch: 0.27039867639541626
       Target Frame: <Fixed Frame>
-      Yaw: 3.0153965950012207
+      Yaw: 3.1054046154022217
     Saved: ~
 Window Geometry:
   Displays:
@@ -214,4 +216,4 @@ Window Geometry:
     collapsed: false
   Width: 1200
   X: 341
-  Y: 35
+  Y: 27
