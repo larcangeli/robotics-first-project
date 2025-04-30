@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
-  SectorTimes.msg
+  sector_times.msg
 )
 
 generate_messages(

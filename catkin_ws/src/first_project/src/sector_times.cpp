@@ -4,7 +4,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include <first_project/SectorTimes.h>
+#include <first_project/sector_times.h>
 #include "sensor_msgs/NavSatFix.h"
 #include "nav_msgs/Odometry.h"
 #include "tf/transform_broadcaster.h"
@@ -34,7 +34,7 @@ class SectorTimeNode
         struct SectorGate second_gate;
         struct SectorGate third_gate;
 
-        first_project::SectorTimes msg;
+        first_project::sector_times msg;
 
         message_filters::Subscriber<sensor_msgs::NavSatFix> gps_sub_;
         message_filters::Subscriber<geometry_msgs::PointStamped> speedsteer_sub_;
@@ -82,7 +82,7 @@ class SectorTimeNode
             msg.current_sector_time = 0.0;  
             msg.current_sector_mean_speed = 0.0;
             
-            pub_ = nh_.advertise<first_project::SectorTimes>("/sector_times", 10);
+            pub_ = nh_.advertise<first_project::sector_times>("/sector_times", 10);
             
             gps_sub_.subscribe(nh_, "/swiftnav/front/gps_pose", 10);
             speedsteer_sub_.subscribe(nh_, "/speedsteer", 10);
